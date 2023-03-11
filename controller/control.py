@@ -5,9 +5,11 @@
 
 from controller import (
     template_router,
+    user_router,
 )
 
 blueprint = {
     # url_prefix: blueprint
     'template': template_router.template_route,
+    'user': user_router.user_route,
 }

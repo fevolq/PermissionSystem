@@ -3,7 +3,7 @@ venv/
 .git/
 .idea/
 
-local_config.py
+local_conf.py
 
 tmp/
 demo/

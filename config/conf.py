@@ -13,6 +13,7 @@ app_log_path = os.path.join(os.path.dirname(__file__), '../logs/app/log')
 app_host = '0.0.0.0'
 app_port = 8008
 
+catch_error = True
 use_thread = True
 # ----------------------------------------------------------------------------------------------------------
 
