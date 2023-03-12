@@ -46,6 +46,13 @@ class Role:
         role_data = all_role_data.get(self.role_id, {})
         dict_to_obj.set_obj_attr(self, role_data)
 
+        user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
+                   f'FROM {constant.UserTable}' \
+                   f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.uid = {constant.UserTable}.uid ' \
+                   f'WHERE {constant.UserRoleTable}.role_id = %s'
+        self.users = mysqlDB.execute(user_sql, [self.role_id])['result']
+
+        # 父角色
         parent = role_data.get('parent', None)
         if parent:
             # TODO：相互为父级时的处理，会造成死循环
@@ -63,6 +70,8 @@ class Role:
             'create_by': self.create_by,
             'update_by': self.update_by,
             'parent': [child.info() for child in self.parent] if self.parent else None,
+
+            'users': self.users
         }
 
     @classmethod

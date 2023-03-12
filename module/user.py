@@ -3,8 +3,11 @@
 # CreateTime: 2023/3/11 20:19
 # FileName:
 
+from typing import List
+
 import constant
 from dao import mysqlDB, sql_builder
+from module.role import Role
 from utils import dict_to_obj
 
 
@@ -22,6 +25,8 @@ class User:
         self.update_at = None
         self.update_by = None
         self.remark = None
+
+        self.roles: List[dict] = []
 
         self.login = False
         self._init()
@@ -44,6 +49,12 @@ class User:
         dict_to_obj.set_obj_attr(self, res[0])
         self.login = True
 
+        role_sql = f'SELECT {constant.RoleTable}.role_id AS role_id, {constant.RoleTable}.name AS role_name ' \
+                   f'FROM {constant.RoleTable}' \
+                   f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.role_id = {constant.RoleTable}.role_id ' \
+                   f'WHERE {constant.UserRoleTable}.uid = %s'
+        self.roles = mysqlDB.execute(role_sql, [self.uid])['result']
+
     @classmethod
     def has_register(cls, email):
         sql = f'SELECT uid FROM {constant.UserTable} WHERE email = %s LIMIT 1'
@@ -56,6 +67,8 @@ class User:
             'uid': self.uid,
             'uname': self.name,
             'email': self.email,
+
+            'roles': self.roles,
         }
 
     # 管理员可查看的用户信息
@@ -68,4 +81,6 @@ class User:
             'update_at': self.update_at,
             'update_by': self.update_by,
             'remark': self.remark,
+
+            'roles': self.roles,
         }

@@ -5,9 +5,10 @@
 
 # 用户表
 UserTable = 'user'
-
 # 角色表
 RoleTable = 'role'
+# 用户角色表
+UserRoleTable = 'user_role'
 
 # 超管
 SuperAdminRoleID = '9fbda9bac78bda02d332d7ab0cc106a1'
