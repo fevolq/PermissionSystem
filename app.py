@@ -46,7 +46,7 @@ for url_prefix, blueprint in control.blueprint.items():
 def before_call():
     ...
     # 若不为注册登录接口，则校验用户
-    current_user = request.environ['user']
+    current_user = request.environ['metadata.user']
     if request.path not in ('/user/register', '/user/login',):
         if (not current_user.login) or current_user.is_ban:
             return {'code': StatusCode.forbidden, 'msg': 'token invalidation, please login again'}

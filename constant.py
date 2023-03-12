@@ -5,3 +5,13 @@
 
 # 用户表
 UserTable = 'user'
+
+# 角色表
+RoleTable = 'role'
+
+# 超管
+SuperAdminRoleID = '9fbda9bac78bda02d332d7ab0cc106a1'
+# 管理员
+AdminRoleID = 'a2fee1741f8baa0886cad3160d6a50ff'
+# 默认角色
+DefaultRoleID = '3363153a98cc9a23042514c5edcc2089'
