@@ -61,7 +61,12 @@ def update(query):
     current_user: User = request.environ['metadata.user']
     data = query['data']
     uid = query.get('uid')
-    # TODO：权限校验：uid != current_user.uid时，是否为管理员
+    if uid != current_user.uid:
+        if not current_user.is_admin():     # 改他人信息，需管理员权限
+            return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+        if User.user_is_admin(uid) and not current_user.is_super_admin():   # 改其他管理员，需超管权限
+            return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+
     # TODO：冲突校验
 
     can_change_fields = ['name', 'password', 'remark']
@@ -116,7 +121,11 @@ def ban(query):
 
     uid_arr = query['uids']
     is_ban = query.get('is_ban', 1)
-    # TODO：用户过滤
+    if current_user.is_admin(only_admin=True) and User.user_is_admin(uid_arr):         # 管理员不能更改其他管理员
+        return {'code': StatusCode.forbidden, 'msg': 'insufficient privileges'}
+
+    # TODO：冲突校验
+
     update_cols = {'is_ban': is_ban, 'update_at': current_time, 'update_by': current_user.email}
     sql, args = sql_builder.gen_update_sql(constant.UserTable, update_cols, conditions={'uid': {'IN': uid_arr}})
     res = mysqlDB.execute(sql, args)

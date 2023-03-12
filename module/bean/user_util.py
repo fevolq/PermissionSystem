@@ -88,10 +88,23 @@ def get_user_by_token(token):
 def is_login(func):
     @wraps(func)
     def decorated_func(*args, **kwargs):
-        user = request.environ['user']
+        user = request.environ['metadata.user']
 
         if user.login:
             return {'code': StatusCode.unauthorized, 'msg': 'User not logged in'}
+
+        return func(*args, **kwargs)
+
+    return decorated_func
+
+
+def is_admin(func):
+    @wraps(func)
+    def decorated_func(*args, **kwargs):
+        user = request.environ['metadata.user']
+
+        if not user.is_admin():
+            return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
 
         return func(*args, **kwargs)
 

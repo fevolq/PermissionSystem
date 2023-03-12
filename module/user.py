@@ -84,3 +84,46 @@ class User:
 
             'roles': self.roles,
         }
+
+    def is_super_admin(self):
+        return constant.SuperAdminRoleID in [role_data['role_id'] for role_data in self.roles]
+
+    def is_admin(self, only_admin=False):
+        check_roles = [constant.AdminRoleID] if only_admin else [constant.SuperAdminRoleID, constant.AdminRoleID]
+        return set(check_roles) & set([role_data['role_id'] for role_data in self.roles])
+
+    @classmethod
+    def user_is_super_admin(cls, uid):
+        """
+        校验指定用户是否为超管
+        :param uid:
+        :return:
+        """
+        op = '='
+        if isinstance(uid, list):
+            op = 'IN'
+        sql, args = sql_builder.gen_select_sql(constant.UserRoleTable, ['role_id'], condition={'uid': {op: uid}})
+        res = mysqlDB.execute(sql, args)['result']
+        if not res:
+            return False
+
+        return constant.SuperAdminRoleID in [role_data['role_id'] for role_data in res]
+
+    @classmethod
+    def user_is_admin(cls, uid, only_admin=False):
+        """
+        校验指定用户是否为管理员（超管）
+        :param uid:
+        :param only_admin: 仅管理员
+        :return:
+        """
+        op = '='
+        if isinstance(uid, list):
+            op = 'IN'
+        sql, args = sql_builder.gen_select_sql(constant.UserRoleTable, ['role_id'], condition={'uid': {op: uid}})
+        res = mysqlDB.execute(sql, args)['result']
+        if not res:
+            return False
+
+        check_roles = [constant.AdminRoleID] if only_admin else [constant.SuperAdminRoleID, constant.AdminRoleID]
+        return set(check_roles) & set([role_data['role_id'] for role_data in res])

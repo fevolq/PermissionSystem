@@ -41,11 +41,12 @@ def add_role(query):
 
 
 def remove_role(query):
-    # TODO：冲突校验
     role_ids = query['role_ids']
-    remove_role_ids = set(role_ids) - set([constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID])
+    assert set(role_ids) & set([constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID])
 
-    sql, args = sql_builder.gen_delete_sql(constant.RoleTable, conditions={'role_id': {'IN': remove_role_ids}})
+    # TODO：冲突校验
+
+    sql, args = sql_builder.gen_delete_sql(constant.RoleTable, conditions={'role_id': {'IN': role_ids}})
     res = mysqlDB.execute(sql, args)
     return {'code': StatusCode.success}
 
@@ -55,6 +56,7 @@ def update_role(query):
     data = query['data']
     role_id = query['role_id']
     assert role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID]
+
     # TODO：冲突校验
 
     can_change_fields = ['name', 'remark', 'parent']

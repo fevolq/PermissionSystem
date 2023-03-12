@@ -6,6 +6,7 @@
 from flask import Blueprint, request, jsonify
 
 from logic import user_logic
+from module.bean import user_util
 
 user_route = Blueprint('user', __name__)
 
@@ -32,7 +33,7 @@ def update():
 
 
 @user_route.route('info', methods=['GET'])
-# TODO：权限校验——管理员
+@user_util.is_admin
 def info():
     query = request.args
     res = user_logic.info(query)
@@ -41,7 +42,7 @@ def info():
 
 # 封禁
 @user_route.route('ban', methods=['PUT'])
-# TODO：权限校验——管理员
+@user_util.is_admin
 def ban():
     query = request.json
     res = user_logic.ban(query)
