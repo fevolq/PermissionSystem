@@ -3,6 +3,8 @@
 # CreateTime: 2023/3/12 17:37
 # FileName:
 
+import json
+
 from flask import request
 
 import constant
@@ -50,4 +52,46 @@ def role_remove_users(query):
     conditions = {'role_id': {'=': role_id}, 'uid': {'IN': users_id}}
     sql, args = sql_builder.gen_delete_sql(constant.UserRoleTable, conditions=conditions)
     res = mysqlDB.execute(sql, args)
-    return {'code': 200}
+    return {'code': StatusCode.success}
+
+
+def permission_tree():
+    with open('permission_data.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    permission_data = {}
+    for dashboard in data:
+        if dashboard.startswith('#'):
+            continue
+
+        dashboard_value = {}
+        for item, values in data[dashboard].items():
+            if item.startswith('#'):
+                continue
+            values = [f'{dashboard}.{item}:{value}' for value in values]
+            dashboard_value[item] = values
+        permission_data[dashboard] = dashboard_value
+    return {'code': StatusCode.success, 'data': permission_data}
+
+
+def role_permission(query):
+    # 权限更新时，传输该角色所有的权限
+    current_user = request.environ['metadata.user']
+    role_id = query['role_id']
+    data = query['data']
+    assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]\
+           and role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID]
+
+    # TODO：权限校验
+
+    # 一个角色的所有权限只占一行
+    row = {
+        'role_id': role_id,
+        'permission': json.dumps(data, indent=4),
+        'update_at': util.asia_local_time(),
+        'update_by': current_user.email,
+    }
+    sql, args = sql_builder.gen_insert_sql(constant.RolePermissionTable, row, update_cols=['permission', 'update_at'])
+    res = mysqlDB.execute(sql, args)
+
+    return {'code': StatusCode.success}

@@ -9,6 +9,8 @@ UserTable = 'user'
 RoleTable = 'role'
 # 用户角色表
 UserRoleTable = 'user_role'
+# 角色权限表
+RolePermissionTable = 'role_permission'
 
 # 超管
 SuperAdminRoleID = '9fbda9bac78bda02d332d7ab0cc106a1'

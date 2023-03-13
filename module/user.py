@@ -8,7 +8,7 @@ from typing import List
 import constant
 from dao import mysqlDB, sql_builder
 from module.role import Role
-from utils import dict_to_obj
+from utils import dict_to_obj, pools
 
 
 class User:
@@ -26,7 +26,8 @@ class User:
         self.update_by = None
         self.remark = None
 
-        self.roles: List[dict] = []
+        self.roles: List[Role] = []
+        self.permissions = []
 
         self.login = False
         self._init()
@@ -53,7 +54,12 @@ class User:
                    f'FROM {constant.RoleTable}' \
                    f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.role_id = {constant.RoleTable}.role_id ' \
                    f'WHERE {constant.UserRoleTable}.uid = %s'
-        self.roles = mysqlDB.execute(role_sql, [self.uid])['result']
+        roles = mysqlDB.execute(role_sql, [self.uid])['result']
+        if roles:
+            args = [[(role_data['role_id'], )] for role_data in roles]
+            self.roles = pools.execute_event(lambda role_id: Role(role_id), args)
+
+        self.permissions = self.get_permissions()
 
     @classmethod
     def has_register(cls, email):
@@ -68,7 +74,8 @@ class User:
             'uname': self.name,
             'email': self.email,
 
-            'roles': self.roles,
+            'roles': [role.ui_info() for role in self.roles],
+            'permissions': self.permissions,
         }
 
     # 管理员可查看的用户信息
@@ -82,15 +89,16 @@ class User:
             'update_by': self.update_by,
             'remark': self.remark,
 
-            'roles': self.roles,
+            'roles': [role.ui_info() for role in self.roles],
+            'permissions': self.permissions,
         }
 
     def is_super_admin(self):
-        return constant.SuperAdminRoleID in [role_data['role_id'] for role_data in self.roles]
+        return constant.SuperAdminRoleID in [role.role_id for role in self.roles]
 
     def is_admin(self, only_admin=False):
         check_roles = [constant.AdminRoleID] if only_admin else [constant.SuperAdminRoleID, constant.AdminRoleID]
-        return set(check_roles) & set([role_data['role_id'] for role_data in self.roles])
+        return set(check_roles) & set([role.role_id for role in self.roles])
 
     @classmethod
     def user_is_super_admin(cls, uid):
@@ -127,3 +135,13 @@ class User:
 
         check_roles = [constant.AdminRoleID] if only_admin else [constant.SuperAdminRoleID, constant.AdminRoleID]
         return set(check_roles) & set([role_data['role_id'] for role_data in res])
+
+    def get_permissions(self):
+        permissions = []
+
+        args = [[(role, )] for role in self.roles]
+        role_permissions = pools.execute_event(lambda role: role.get_all_permission(), args)
+        for role_permission in role_permissions:
+            permissions.extend(role_permission)
+
+        return sorted(list(set(permissions)))

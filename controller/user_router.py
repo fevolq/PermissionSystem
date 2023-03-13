@@ -25,6 +25,7 @@ def login():
     return jsonify(res)
 
 
+# 更新用户信息
 @user_route.route('update', methods=['PUT'])
 def update():
     query = request.json
@@ -32,6 +33,7 @@ def update():
     return jsonify(res)
 
 
+# 查询用户
 @user_route.route('info', methods=['GET'])
 @user_util.is_admin
 def info():

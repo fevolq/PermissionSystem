@@ -25,3 +25,20 @@ def role_remove_users():
     query = request.json
     res = permission_logic.role_remove_users(query)
     return jsonify(res)
+
+
+# 权限树
+@permission_route.route('permission_tree', methods=['GET'])
+@user_util.is_admin
+def permission_tree():
+    res = permission_logic.permission_tree()
+    return jsonify(res)
+
+
+# 角色权限赋予
+@permission_route.route('role_permission', methods=['POST'])
+@user_util.is_admin
+def role_permission():
+    query = request.json
+    res = permission_logic.role_permission(query)
+    return jsonify(res)

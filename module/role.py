@@ -2,6 +2,7 @@
 # python3.7
 # CreateTime: 2023/3/11 21:59
 # FileName:
+
 import json
 import threading
 from typing import List
@@ -35,7 +36,7 @@ class Role:
 
         # 权限元素
         self.users: List[dict] = []
-        self.projects = []  # 有权限的项目
+        self.permissions = []
 
         self._init()
 
@@ -52,6 +53,13 @@ class Role:
                    f'WHERE {constant.UserRoleTable}.role_id = %s'
         self.users = mysqlDB.execute(user_sql, [self.role_id])['result']
 
+        permission_sql, permission_args = sql_builder.gen_select_sql(constant.RolePermissionTable, ['permission'],
+                                                                     condition={'role_id': {'=': self.role_id}},
+                                                                     limit=1)
+        permission_res = mysqlDB.execute(permission_sql, permission_args)['result']
+        if permission_res:
+            self.permissions = json.loads(permission_res[0]['permission'])
+
         # 父角色
         parent = role_data.get('parent', None)
         if parent:
@@ -59,6 +67,13 @@ class Role:
             args_list = [[(parent_id,)] for parent_id in json.loads(parent)]
             self.parent = pools.execute_event(lambda role_id: Role(role_id), args_list)
             # 对象全局缓存
+
+    def ui_info(self):
+        return {
+            'role_id': self.role_id,
+            'name': self.name,
+            'remark': self.remark,
+        }
 
     def info(self):
         return {
@@ -71,7 +86,8 @@ class Role:
             'update_by': self.update_by,
             'parent': [child.info() for child in self.parent] if self.parent else None,
 
-            'users': self.users
+            'users': self.users,
+            'permissions': self.permissions,
         }
 
     @classmethod
@@ -90,3 +106,18 @@ class Role:
     @classmethod
     def clear_all_data(cls):
         cls.all_data = None
+
+    def get_all_permission(self):
+        """
+        获取角色的所有权限（包括继承的权限）
+        :return:
+        """
+        permissions = self.permissions
+
+        if self.parent:
+            args = [[(parent_role,)] for parent_role in self.parent]
+            parent_permissions = pools.execute_event(lambda role: role.get_all_permission(), args)
+            for permission in parent_permissions:
+                permissions.extend(permission)
+
+        return list(set(permissions))

@@ -23,8 +23,9 @@ def register(query):
     salt = user_util.gen_salt()
     bcrypt_str = user_util.gen_bcrypt_str(password, salt)
     current_time = util.asia_local_time()
+    uid = user_util.gen_uid()
     row = {
-        'uid': user_util.gen_uid(),
+        'uid': uid,
         'name': name,
         'email': email,
         'salt': salt,
@@ -34,7 +35,17 @@ def register(query):
         'remark': query.get('remark', None),
     }
     sql, args = sql_builder.gen_insert_sql(constant.UserTable, row)
-    res = mysqlDB.execute(sql, args)
+    user_role_row = {
+        'uid': uid,
+        'role_id': constant.DefaultRoleID,
+        'update_at': current_time,
+        'update_by': '',
+    }
+    role_sql, role_args = sql_builder.gen_insert_sql(constant.UserRoleTable, user_role_row)
+    res = mysqlDB.execute_many([
+        {'sql': sql, 'args': args},
+        {'sql': role_sql, 'args': role_args},
+    ])
     return {'code': StatusCode.success}
 
 
