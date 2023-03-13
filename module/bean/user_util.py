@@ -109,3 +109,17 @@ def is_admin(func):
         return func(*args, **kwargs)
 
     return decorated_func
+
+
+def has_permission(permission):
+    def do(func):
+        @wraps(func)
+        def decorated_func(*args, **kwargs):
+            user = request.environ['metadata.user']
+
+            if not user.has_permission(permission):
+                return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+
+            return func(*args, **kwargs)
+        return decorated_func
+    return do

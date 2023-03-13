@@ -145,3 +145,9 @@ class User:
             permissions.extend(role_permission)
 
         return sorted(list(set(permissions)))
+
+    def has_permission(self, permission):
+        if self.is_admin():
+            return True
+
+        return permission in self.permissions
