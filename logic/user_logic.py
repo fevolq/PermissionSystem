@@ -71,7 +71,7 @@ def login(query):
 def update(query):
     current_user: User = request.environ['metadata.user']
     data = query['data']
-    uid = query.get('uid')
+    uid = query.get('uid', current_user.uid)
     if uid != current_user.uid:
         if not current_user.is_admin():     # 改他人信息，需管理员权限
             return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
