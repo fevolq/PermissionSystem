@@ -11,6 +11,7 @@ from module.bean import user_util
 permission_route = Blueprint('permission', __name__)
 
 
+# 角色添加用户
 @permission_route.route('role_add_user', methods=['POST'])
 @user_util.is_admin
 def role_add_users():
@@ -19,11 +20,21 @@ def role_add_users():
     return jsonify(res)
 
 
+# 角色移除用户
 @permission_route.route('role_remove_user', methods=['DELETE'])
 @user_util.is_admin
 def role_remove_users():
     query = request.json
     res = permission_logic.role_remove_users(query)
+    return jsonify(res)
+
+
+# 用户更换角色
+@permission_route.route('user_roles', methods=['PUT'])
+@user_util.is_admin
+def user_roles():
+    query = request.json
+    res = permission_logic.user_roles(query)
     return jsonify(res)
 
 
