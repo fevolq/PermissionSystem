@@ -62,3 +62,21 @@ def role_permission():
     query = request.json
     res = permission_logic.role_permission(query)
     return jsonify(res)
+
+
+# 部门中添加项目
+@permission_route.route('depart_add_pj', methods=['POST'])
+@user_util.is_admin
+def depart_add_project():
+    query = request.json
+    res = permission_logic.depart_add_project(query)
+    return jsonify(res)
+
+
+# 部门中移除项目
+@permission_route.route('depart_remove_pj', methods=['DELETE'])
+@user_util.is_admin
+def depart_remove_project():
+    query = request.json
+    res = permission_logic.depart_remove_project(query)
+    return jsonify(res)

@@ -207,3 +207,35 @@ def role_permission(query):
     res = mysqlDB.execute(sql, args)
 
     return {'code': StatusCode.success}
+
+
+def depart_add_project(query):
+    current_user = request.environ['metadata.user']
+    depart_id = query['depart_id']
+    projects = query['projects']
+    assert projects
+
+    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+    assert depart_id in all_depart_ids
+
+    rows = [{
+        'project': project,
+        'depart_id': depart_id,
+        'update_at': util.asia_local_time(),
+        'update_by': current_user.email,
+    } for project in projects]
+    sql, args = sql_builder.gen_insert_sqls(constant.DepartProjectTable, rows, update_cols=['update_at'])
+    res = mysqlDB.execute(sql, args)
+    return {'code': StatusCode.success}
+
+
+def depart_remove_project(query):
+    depart_id = query['depart_id']
+    projects = query['projects']
+    assert projects
+
+    # TODO：冲突校验
+    conditions = {'depart_id': {'=': depart_id}, 'project': {'IN': projects}}
+    sql, args = sql_builder.gen_delete_sql(constant.DepartProjectTable, conditions=conditions)
+    res = mysqlDB.execute(sql, args)
+    return {'code': 200}

@@ -47,6 +47,13 @@ class Role:
         role_data = all_role_data.get(self.role_id, {})
         dict_to_obj.set_obj_attr(self, role_data)
 
+        parent = role_data.get('parent', None)
+        if parent:
+            # TODO：相互为父级时的处理，会造成死循环
+            args_list = [[(parent_id,)] for parent_id in json.loads(parent)]
+            self.parent = pools.execute_event(lambda role_id: Role(role_id), args_list)
+            # 对象全局缓存
+
         user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
                    f'FROM {constant.UserTable}' \
                    f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.uid = {constant.UserTable}.uid ' \
@@ -60,14 +67,6 @@ class Role:
         permission_res = mysqlDB.execute(permission_sql, permission_args)['result']
         if permission_res:
             self.permissions = json.loads(permission_res[0]['permission'])
-
-        # 父角色
-        parent = role_data.get('parent', None)
-        if parent:
-            # TODO：相互为父级时的处理，会造成死循环
-            args_list = [[(parent_id,)] for parent_id in json.loads(parent)]
-            self.parent = pools.execute_event(lambda role_id: Role(role_id), args_list)
-            # 对象全局缓存
 
     def ui_info(self):
         return {

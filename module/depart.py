@@ -32,6 +32,7 @@ class Depart:
 
         # 权限元素
         self.users: List[dict] = []
+        self.projects = []
 
         self._init()
 
@@ -58,13 +59,6 @@ class Depart:
         # 填充属性
         dict_to_obj.set_obj_attr(self, all_depart_data.get(self.depart_id, {}))
 
-        user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
-                   f'FROM {constant.UserTable}' \
-                   f' LEFT JOIN {constant.UserDepartTable} ON {constant.UserDepartTable}.uid = {constant.UserTable}.uid ' \
-                   f'WHERE {constant.UserDepartTable}.depart_id = %s ' \
-                   f'ORDER BY {constant.UserTable}.id ASC'
-        self.users = mysqlDB.execute(user_sql, [self.depart_id])['result']
-
         parent_departs = {}  # {parent_id: [depart, ]}
         for row in all_depart_data.values():
             departs = parent_departs.setdefault(row['parent_id'], [])
@@ -72,8 +66,21 @@ class Depart:
 
         children = parent_departs.get(self.depart_id)
         if children:
-            args_list = [[(depart_data['depart_id'], )] for depart_data in children]
+            args_list = [[(depart_data['depart_id'],)] for depart_data in children]
             self.children = pools.execute_event(lambda depart_id: Depart(depart_id), args_list)
+
+        user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
+                   f'FROM {constant.UserTable}' \
+                   f' LEFT JOIN {constant.UserDepartTable} ON {constant.UserDepartTable}.uid = {constant.UserTable}.uid ' \
+                   f'WHERE {constant.UserDepartTable}.depart_id = %s ' \
+                   f'ORDER BY {constant.UserTable}.id ASC'
+        self.users = mysqlDB.execute(user_sql, [self.depart_id])['result']
+
+        project_sql, project_args = sql_builder.gen_select_sql(constant.DepartProjectTable, ['project'],
+                                                               condition={'depart_id': {'=': self.depart_id}},
+                                                               order_by=[('id', 'asc')])
+        project_res = mysqlDB.execute(project_sql, project_args)['result']
+        self.projects = [row['project'] for row in project_res]
 
     def ui_info(self):
         return {
@@ -94,6 +101,7 @@ class Depart:
             'children': [child.info() for child in self.children],
 
             'users': self.users,
+            'projects': self.projects,
         }
 
     @classmethod
@@ -115,3 +123,42 @@ class Depart:
         get_children(Depart(depart_node_id))
 
         return depart_id in depart_id_set
+
+    def get_all_projects(self):
+        """
+        获取所有有权限的项目
+        """
+        projects = []
+        projects.extend(self.projects)
+
+        if self.children:
+            for child in self.children:
+                chile_projects = child.get_all_projects()
+                projects.extend(chile_projects)
+
+        return list(set(projects))
+
+    def has_project(self, project):
+        """
+        是否有指定项目的权限
+        """
+        if project in self.projects:
+            return True
+
+        if self.children:
+            for child in self.children:
+                result = child.has_project(project)
+                if result:
+                    return result
+        return False
+
+        # projects = []
+        #
+        # def get_projects(depart):
+        #     projects.extend(depart.projects)
+        #     if project not in projects and depart.children:     # 已存在，则终止延申
+        #         for child in depart.children:
+        #             get_projects(child)
+        #
+        # get_projects(self)
+        # return project in projects

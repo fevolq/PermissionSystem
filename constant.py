@@ -8,7 +8,8 @@ RoleTable = 'company_role'
 DepartTable = 'company_depart'
 UserRoleTable = 'company_user_role'
 UserDepartTable = 'company_user_depart'
-RolePermissionTable = 'company_role_permission'
+RolePermissionTable = 'company_role_permission'     # 角色权限表
+DepartProjectTable = 'company_depart_project'       # 部门项目表
 
 SuperAdminRoleID = '2c095869acd53350c12a5db6a0539a54'
 AdminRoleID = 'd81054451179d2efae4aa0e56efe4e3c'

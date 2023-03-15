@@ -31,6 +31,7 @@ class User:
         self.roles: List[Role] = []
         self.depart: Depart = None
         self.permissions = []
+        self.projects = []
 
         self.login = False
         self._init()
@@ -73,6 +74,8 @@ class User:
 
         self.permissions = self.get_permissions()
 
+        self.projects = self.get_projects() if self.depart else {}
+
     @classmethod
     def has_register(cls, email):
         sql = f'SELECT uid FROM {constant.UserTable} WHERE email = %s LIMIT 1'
@@ -107,6 +110,7 @@ class User:
             'roles': [role.ui_info() for role in self.roles],
             'depart': self.depart.ui_info() if self.depart else {},     # TODO: 待取消判定
             'permissions': self.permissions,
+            'projects': self.projects,
         }
 
     def is_super_admin(self):
@@ -167,3 +171,9 @@ class User:
             return True
 
         return permission in self.permissions
+
+    def get_projects(self):
+        return self.depart.get_all_projects()
+
+    def has_project(self, project):
+        return self.depart and self.depart.has_project(project)
