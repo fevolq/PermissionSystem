@@ -5,7 +5,9 @@
 
 UserTable = 'company_user'
 RoleTable = 'company_role'
+DepartTable = 'company_depart'
 UserRoleTable = 'company_user_role'
+UserDepartTable = 'company_user_depart'
 RolePermissionTable = 'company_role_permission'
 
 SuperAdminRoleID = '2c095869acd53350c12a5db6a0539a54'

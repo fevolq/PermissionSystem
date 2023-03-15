@@ -8,6 +8,7 @@ from controller import (
     user_router,
     role_router,
     permission_router,
+    depart_router,
 )
 
 blueprint = {
@@ -16,4 +17,5 @@ blueprint = {
     'user': user_router.user_route,
     'role': role_router.role_route,
     'permission': permission_router.permission_route,
+    'depart': depart_router.depart_route,
 }

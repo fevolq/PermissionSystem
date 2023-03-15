@@ -7,6 +7,7 @@ from typing import List
 
 import constant
 from dao import mysqlDB, sql_builder
+from module.depart import Depart
 from module.role import Role
 from utils import dict_to_obj, pools
 
@@ -28,6 +29,7 @@ class User:
         self.remark = None
 
         self.roles: List[Role] = []
+        self.depart: Depart = None
         self.permissions = []
 
         self.login = False
@@ -61,6 +63,14 @@ class User:
             args = [[(role_data['role_id'], )] for role_data in roles]
             self.roles = pools.execute_event(lambda role_id: Role(role_id), args)
 
+        depart_sql = f'SELECT {constant.DepartTable}.depart_id AS depart_id, {constant.DepartTable}.name AS depart_name ' \
+                     f'FROM {constant.DepartTable}' \
+                     f' LEFT JOIN {constant.UserDepartTable} ON {constant.UserDepartTable}.depart_id = {constant.DepartTable}.depart_id ' \
+                     f'WHERE {constant.UserDepartTable}.uid = %s'
+        depart = mysqlDB.execute(depart_sql, [self.uid])['result']
+        if depart:  # TODO：待取消判定
+            self.depart = Depart(depart[0]['depart_id'])
+
         self.permissions = self.get_permissions()
 
     @classmethod
@@ -77,6 +87,7 @@ class User:
             'email': self.email,
 
             'roles': [role.ui_info() for role in self.roles],
+            'depart': self.depart.ui_info() if self.depart else {},     # TODO: 待取消判定
             'permissions': self.permissions,
         }
 
@@ -94,6 +105,7 @@ class User:
             'remark': self.remark,
 
             'roles': [role.ui_info() for role in self.roles],
+            'depart': self.depart.ui_info() if self.depart else {},     # TODO: 待取消判定
             'permissions': self.permissions,
         }
 

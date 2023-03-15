@@ -7,17 +7,25 @@ from flask import request
 import constant
 from dao import sql_builder, mysqlDB
 from module.bean import user_util
+from module.depart import Depart
 from module.user import User
 from status_code import StatusCode
 from utils import util, pools
 
 
 def register(query):
+    """
+    注册用户，需管理员权限，且需指定部门，角色可指定（存在默认角色）。
+    :param query:
+    :return:
+    """
     current_user: User = request.environ['metadata.user']
     name = query['name']
     email = query['email']
     password = query['password']
     role_id = query.get('role_id', constant.DefaultRoleID)
+    depart_id = query['depart_id']
+    assert depart_id in [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
     if User.has_register(email):
         return {'code': StatusCode.is_conflict, 'msg': 'Email address has registered'}
     if role_id in (constant.SuperAdminRoleID, constant.AdminRoleID) and not current_user.is_super_admin():
@@ -44,12 +52,20 @@ def register(query):
         'uid': uid,
         'role_id': role_id,
         'update_at': current_time,
-        'update_by': '',
+        'update_by': current_user.email,
     }
     role_sql, role_args = sql_builder.gen_insert_sql(constant.UserRoleTable, user_role_row)
+    user_depart_row = {
+        'uid': uid,
+        'depart_id': depart_id,
+        'update_at': current_time,
+        'update_by': current_user.email,
+    }
+    depart_sql, depart_args = sql_builder.gen_insert_sql(constant.UserDepartTable, user_depart_row)
     res = mysqlDB.execute_many([
         {'sql': sql, 'args': args},
         {'sql': role_sql, 'args': role_args},
+        {'sql': depart_sql, 'args': depart_args},
     ])
     return {'code': StatusCode.success}
 

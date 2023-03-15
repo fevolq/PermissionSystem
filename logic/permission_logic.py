@@ -4,22 +4,36 @@
 # FileName:
 
 import json
+from typing import List
 
 from flask import request
 
 import constant
 from dao import sql_builder, mysqlDB
+from module.depart import Depart
 from module.role import Role
 from module.user import User
 from status_code import StatusCode
 from utils import util
 
 
-def cannot_change_admin_role(role_id, current_user):
-    return role_id in [constant.SuperAdminRoleID, constant.AdminRoleID] and not current_user.is_super_admin()
+def can_change_admin_role(role_id: str, current_user):
+    """
+    当前用户是否可更改当前角色
+    :param role_id:
+    :param current_user:
+    :return:
+    """
+    return current_user.is_super_admin() or role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID]
 
 
-def can_change_admin_user(uids, current_user):
+def can_change_admin_user(uids: List, current_user):
+    """
+    当前用户是否可更改指定用户
+    :param uids:
+    :param current_user:
+    :return:
+    """
     for uid in uids:
         if User.user_is_admin(uid) and not current_user.is_super_admin():
             return False
@@ -31,7 +45,7 @@ def role_add_users(query):
     role_id = query['role_id']
     users_id = query['uids']
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
-    if cannot_change_admin_role(role_id, current_user):
+    if not can_change_admin_role(role_id, current_user):
         # 添加管理员角色，需超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
     if not can_change_admin_user(users_id, current_user):
@@ -58,7 +72,7 @@ def role_remove_users(query):
     users_id = data['uids']
 
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
-    if cannot_change_admin_role(role_id, current_user):
+    if not can_change_admin_role(role_id, current_user):
         # 移除管理员，需超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
     if not can_change_admin_user(users_id, current_user):
@@ -93,7 +107,7 @@ def user_roles(query):
             del record_roles[role_id]
             continue
 
-        if cannot_change_admin_role(role_id, current_user):
+        if not can_change_admin_role(role_id, current_user):
             # 更改管理员人员，需超管权限
             return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
         assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
@@ -129,6 +143,30 @@ def user_roles(query):
     return {'code': StatusCode.success}
 
 
+def user_depart(query):
+    current_user = request.environ['metadata.user']
+    depart_id = query['depart_id']
+    data = query['data']
+    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+    assert depart_id in all_depart_ids
+
+    if not can_change_admin_user([row['uid'] for row in data], current_user):
+        # 更改管理员用户，需要超管权限
+        return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+
+    # TODO：冲突校验
+
+    update_cols = {
+        'depart_id': depart_id,
+        'update_at': util.asia_local_time(),
+        'update_by': current_user.email,
+    }
+    sql, args = sql_builder.gen_update_sql(constant.UserDepartTable, update_cols, conditions={'uid': {'in': [row['uid'] for row in data]}})
+    res = mysqlDB.execute(sql, args)
+
+    return {'code': StatusCode.success}
+
+
 def permission_tree():
     with open('permission_data.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -153,8 +191,8 @@ def role_permission(query):
     current_user = request.environ['metadata.user']
     role_id = query['role_id']
     data = query['data']
-    assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]\
-           and role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID]
+    assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
+    assert role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID]
 
     # TODO：权限校验
 

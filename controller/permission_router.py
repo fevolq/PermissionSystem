@@ -38,6 +38,15 @@ def user_roles():
     return jsonify(res)
 
 
+# 用户部门
+@permission_route.route('user_depart', methods=['PUT'])
+@user_util.is_admin
+def user_depart():
+    query = request.json
+    res = permission_logic.user_depart(query)
+    return jsonify(res)
+
+
 # 权限树
 @permission_route.route('permission_tree', methods=['GET'])
 @user_util.is_admin

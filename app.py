@@ -15,8 +15,8 @@ from utils import log_init, util
 from status_code import StatusCode
 from controller import control
 
-# if conf.LOAD_PATCH and util.is_linux():
-monkey.patch_all()
+if conf.LOAD_PATCH and util.is_linux():
+    monkey.patch_all()
 
 
 # 日志初始化
