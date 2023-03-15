@@ -1,0 +1,17 @@
+{
+  "#dashboard": {
+    "#filter": ["过滤器"],
+    "#chart": ["视图"],
+    "#func": ["功能"]
+  },
+  "demo01": {
+    "filter": ["filter01", "filter02"],
+    "chart": ["table01", "table02"],
+    "func": ["demo01/add", "demo01/remove", "demo01/update"]
+  },
+  "demo02": {
+    "filter": ["filter01", "filter02"],
+    "chart": ["table01", "table02"],
+    "func": ["demo02/add", "demo02/remove", "demo02/update"]
+  }
+}

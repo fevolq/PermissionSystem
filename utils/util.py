@@ -83,6 +83,10 @@ def md5(s: typing.Union[str, bytes]) -> str:
     return hashlib.md5(s).hexdigest()
 
 
+def gen_uid():
+    return str(uuid.uuid4())
+
+
 def gen_unique_str(key: str = None):
     key = random_string(3) if key is None else key
     key = f'{time.time()}{uuid.uuid4()}{key}'

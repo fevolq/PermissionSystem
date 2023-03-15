@@ -5,9 +5,15 @@
 
 from controller import (
     template_router,
+    user_router,
+    role_router,
+    permission_router,
 )
 
 blueprint = {
     # url_prefix: blueprint
     'template': template_router.template_route,
+    'user': user_router.user_route,
+    'role': role_router.role_route,
+    'permission': permission_router.permission_route,
 }

@@ -12,11 +12,11 @@ from gevent import monkey
 from config import conf
 from middleware import Middleware
 from utils import log_init, util
-import status_code
+from status_code import StatusCode
 from controller import control
 
-if conf.LOAD_PATCH and util.is_linux():
-    monkey.patch_all()
+# if conf.LOAD_PATCH and util.is_linux():
+monkey.patch_all()
 
 
 # 日志初始化
@@ -46,7 +46,11 @@ for url_prefix, blueprint in control.blueprint.items():
 def before_call():
     ...
     # 若 return ，则直接返回响应
-    pass
+    # 若不为登录接口，则校验用户
+    current_user = request.environ['metadata.user']
+    if request.path not in ('/user/login',):
+        if (not current_user.login) or current_user.is_ban:
+            return {'code': StatusCode.forbidden, 'msg': 'token invalidation, please login again'}
 
 
 @app.after_request
@@ -66,9 +70,14 @@ def error_handler(e):
     """
     logging.error(e)
     data = {
-        'code': status_code.StatusCode.failure,
+        'code': StatusCode.failure,
         'msg': '出现未知情况',
     }
+    if isinstance(e, AssertionError):
+        data['code'] = StatusCode.forbidden
+        data['msg'] = '拒绝执行'
+    if not conf.catch_error:
+        raise e
     return jsonify(data)
 
 

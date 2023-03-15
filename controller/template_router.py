@@ -5,9 +5,7 @@
 
 from flask import Blueprint, request, jsonify
 
-from logic import (
-    template_logic,
-)
+from logic import template_logic
 
 template_route = Blueprint('template', __name__)
 
