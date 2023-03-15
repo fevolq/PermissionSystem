@@ -10,6 +10,7 @@ from flask import request
 import constant
 from dao import sql_builder, mysqlDB
 from module.role import Role
+from module.user import User
 from status_code import StatusCode
 from utils import util
 
@@ -18,13 +19,23 @@ def cannot_change_admin_role(role_id, current_user):
     return role_id in [constant.SuperAdminRoleID, constant.AdminRoleID] and not current_user.is_super_admin()
 
 
+def can_change_admin_user(uids, current_user):
+    for uid in uids:
+        if User.user_is_admin(uid) and not current_user.is_super_admin():
+            return False
+    return True
+
+
 def role_add_users(query):
     current_user = request.environ['metadata.user']
     role_id = query['role_id']
     users_id = query['uids']
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
     if cannot_change_admin_role(role_id, current_user):
-        # 更改管理员人员，需超管权限
+        # 添加管理员角色，需超管权限
+        return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+    if not can_change_admin_user(users_id, current_user):
+        # 更改管理员用户的角色，需要超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
 
     # TODO：冲突校验
@@ -48,7 +59,10 @@ def role_remove_users(query):
 
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
     if cannot_change_admin_role(role_id, current_user):
-        # 更改管理员人员，需超管权限
+        # 移除管理员，需超管权限
+        return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+    if not can_change_admin_user(users_id, current_user):
+        # 更改管理员用户的角色，需要超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
 
     # TODO：冲突校验
@@ -63,8 +77,11 @@ def user_roles(query):
     current_user = request.environ['metadata.user']
     uid = query['uid']
     data = query['data']
+    if not can_change_admin_user([uid], current_user):
+        # 更改管理员用户的角色，需要超管权限
+        return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
 
-    record_sql, record_args = sql_builder.gen_select_sql(constant.UserRoleTable, ['role_id'], condition={'uid':{'=': uid}})
+    record_sql, record_args = sql_builder.gen_select_sql(constant.UserRoleTable, ['role_id'], condition={'uid': {'=': uid}})
     record_res = mysqlDB.execute(record_sql, record_args)['result']
     record_roles = {row['role_id']: row for row in record_res}
 
