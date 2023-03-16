@@ -38,17 +38,19 @@ def add_role(query):
     }
     sql, args = sql_builder.gen_insert_sql(constant.RoleTable, row)
     res = mysqlDB.execute(sql, args)
+    Role.clear_all_data()
     return {'code': StatusCode.success}
 
 
 def remove_role(query):
     role_ids = query['role_ids']
-    assert set(role_ids) & set([constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID])
+    assert not set(role_ids) & set([constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID])
 
     # TODO：冲突校验
 
     sql, args = sql_builder.gen_delete_sql(constant.RoleTable, conditions={'role_id': {'IN': role_ids}})
     res = mysqlDB.execute(sql, args)
+    Role.clear_all_data()
     return {'code': StatusCode.success}
 
 
@@ -63,7 +65,7 @@ def update_role(query):
     can_change_fields = ['name', 'remark', 'parent']
     change_fields = {field: data[field] for field in can_change_fields if field in data}
     if not change_fields:
-        return {'code': 200}
+        return {'code': StatusCode.success}
     elif 'parent' in change_fields:
         all_role_ids = [role_data['role_id'] for role_data in Role.get_all_data()]
         for parent_id in change_fields['parent']:
@@ -95,5 +97,5 @@ def info(query):
         res = mysqlDB.execute(sql, args)['result']
         role_id_set = role_id_set & set([row['role_id'] for row in res])
 
-    roles = [Role(role_id_) for role_id_ in sorted(list(role_id_set), key=lambda role_id_: all_role_data[role_id_]['id'])]
+    roles = (Role(role_id_) for role_id_ in sorted(list(role_id_set), key=lambda role_id_: all_role_data[role_id_]['id']))
     return {'code': StatusCode.success, 'data': [role.info() for role in roles]}

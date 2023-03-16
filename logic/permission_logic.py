@@ -79,8 +79,8 @@ def role_permission(query):
     current_user = request.environ['metadata.user']
     role_id = query['role_id']
     data = query['data']
-    assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]\
-           and role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID]
+    assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
+    assert role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID, constant.DefaultRoleID]
 
     # TODO：权限校验
 
@@ -91,7 +91,7 @@ def role_permission(query):
         'update_at': util.asia_local_time(),
         'update_by': current_user.email,
     }
-    sql, args = sql_builder.gen_insert_sql(constant.RolePermissionTable, row, update_cols=['permission', 'update_at'])
+    sql, args = sql_builder.gen_insert_sql(constant.RolePermissionTable, row, update_cols=['permission', 'update_at', 'update_by'])
     res = mysqlDB.execute(sql, args)
 
     return {'code': StatusCode.success}
