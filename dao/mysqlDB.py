@@ -165,7 +165,8 @@ def logging_sql(sql, args, key: str = None):
     if key is not None:
         kwargs['key'] = key
 
-    logging.info(f'sql: {sql}')
+    info = f'[{key}]sql: {sql}' if key else f'sql: {sql}'
+    logging.info(info)
     # log_sls.info('sql', '执行sql', **kwargs)
 
 

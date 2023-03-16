@@ -16,7 +16,7 @@ class Depart:
     all_data = None             # 仅包含基础元素
     __lock = threading.RLock()
 
-    def __init__(self, depart_id):
+    def __init__(self, depart_id, fill_permission=True):
         # 基础元素
         self.depart_id = depart_id
         self.name = None
@@ -33,7 +33,7 @@ class Depart:
         self.users: List[dict] = []
         self.projects = []
 
-        self._init()
+        self._init(fill_permission)
 
     @classmethod
     def get_all_data(cls):
@@ -52,7 +52,7 @@ class Depart:
     def clear_all_data(cls):
         cls.all_data = None
 
-    def _init(self):
+    def _init(self, fill_permission=True):
         all_depart_data = {depart_data['depart_id']: depart_data for depart_data in self.get_all_data()}
 
         # 填充属性
@@ -66,20 +66,29 @@ class Depart:
         children = parent_departs.get(self.depart_id)
         if children:
             args_list = [[(depart_data['depart_id'],)] for depart_data in children]
-            self.children = pools.execute_event(lambda depart_id: Depart(depart_id), args_list)
+            self.children = pools.execute_event(lambda depart_id: Depart(depart_id, fill_permission=fill_permission), args_list)
 
-        user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
-                   f'FROM {constant.UserTable}' \
-                   f' LEFT JOIN {constant.UserDepartTable} ON {constant.UserDepartTable}.uid = {constant.UserTable}.uid ' \
-                   f'WHERE {constant.UserDepartTable}.depart_id = %s ' \
-                   f'ORDER BY {constant.UserTable}.id ASC'
-        self.users = mysqlDB.execute(user_sql, [self.depart_id])['result']
+        if fill_permission:
+            self.get_projects()
 
-        project_sql, project_args = sql_builder.gen_select_sql(constant.DepartProjectTable, ['project'],
-                                                               condition={'depart_id': {'=': self.depart_id}},
-                                                               order_by=[('id', 'asc')])
-        project_res = mysqlDB.execute(project_sql, project_args)['result']
-        self.projects = [row['project'] for row in project_res]
+    def get_projects(self):
+        if not self.projects:
+            project_sql, project_args = sql_builder.gen_select_sql(constant.DepartProjectTable, ['project'],
+                                                                   condition={'depart_id': {'=': self.depart_id}},
+                                                                   order_by=[('id', 'asc')])
+            project_res = mysqlDB.execute(project_sql, project_args)['result']
+            self.projects = [row['project'] for row in project_res]
+        return self.projects
+
+    def get_depart_users(self):
+        if not self.users:
+            user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
+                       f'FROM {constant.UserTable}' \
+                       f' LEFT JOIN {constant.UserDepartTable} ON {constant.UserDepartTable}.uid = {constant.UserTable}.uid ' \
+                       f'WHERE {constant.UserDepartTable}.depart_id = %s ' \
+                       f'ORDER BY {constant.UserTable}.id ASC'
+            self.users = mysqlDB.execute(user_sql, [self.depart_id])['result']
+        return self.users
 
     def ui_info(self):
         return {
@@ -99,8 +108,8 @@ class Depart:
             'update_by': self.update_by,
             'children': [child.info() for child in self.children],
 
-            'users': self.users,
-            'projects': self.projects,
+            'users': self.get_depart_users(),
+            'projects': self.get_projects(),
         }
 
     @classmethod

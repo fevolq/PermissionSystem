@@ -72,7 +72,7 @@ def register(query):
         {'sql': sql, 'args': args},
         {'sql': role_sql, 'args': role_args},
         {'sql': depart_sql, 'args': depart_args},
-    ])
+    ], log_key='注册用户')
     return {'code': StatusCode.success}
 
 

@@ -21,7 +21,7 @@ class Role:
     all_data = None  # 仅包含基础元素
     __lock = threading.RLock()
 
-    def __init__(self, role_id):
+    def __init__(self, role_id, fill_permission=True):
         # 基础元素
         self.role_id = role_id
         self.name = None
@@ -38,9 +38,9 @@ class Role:
         self.users: List[dict] = []
         self.permissions = []
 
-        self._init()
+        self._init(fill_permission)
 
-    def _init(self):
+    def _init(self, fill_permission=True):
         all_role_data = {role_data['role_id']: role_data for role_data in self.get_all_data()}
 
         # 填充属性
@@ -51,22 +51,33 @@ class Role:
         if parent:
             # TODO：相互为父级时的处理，会造成死循环
             args_list = [[(parent_id,)] for parent_id in json.loads(parent)]
-            self.parent = pools.execute_event(lambda role_id: Role(role_id), args_list)
+            result = pools.execute_event(lambda role_id: Role(role_id, fill_permission=fill_permission), args_list)
+            self.parent = list(filter(lambda role: role.name, result))
             # 对象全局缓存
 
-        user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
-                   f'FROM {constant.UserTable}' \
-                   f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.uid = {constant.UserTable}.uid ' \
-                   f'WHERE {constant.UserRoleTable}.role_id = %s ' \
-                   f'ORDER BY {constant.UserTable}.id ASC'
-        self.users = mysqlDB.execute(user_sql, [self.role_id])['result']
+        if fill_permission:
+            self.get_permission()
 
-        permission_sql, permission_args = sql_builder.gen_select_sql(constant.RolePermissionTable, ['permission'],
-                                                                     condition={'role_id': {'=': self.role_id}},
-                                                                     limit=1)
-        permission_res = mysqlDB.execute(permission_sql, permission_args)['result']
-        if permission_res:
-            self.permissions = json.loads(permission_res[0]['permission'])
+    def get_permission(self):
+        if not self.permissions:
+            # TODO: 以role_id为键，进行缓存
+            permission_sql, permission_args = sql_builder.gen_select_sql(constant.RolePermissionTable, ['permission'],
+                                                                         condition={'role_id': {'=': self.role_id}},
+                                                                         limit=1)
+            permission_res = mysqlDB.execute(permission_sql, permission_args)['result']
+            if permission_res:
+                self.permissions = json.loads(permission_res[0]['permission'])
+        return self.permissions
+
+    def get_role_users(self):
+        if not self.users:
+            user_sql = f'SELECT {constant.UserTable}.uid AS uid, {constant.UserTable}.name AS uname ' \
+                       f'FROM {constant.UserTable}' \
+                       f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.uid = {constant.UserTable}.uid ' \
+                       f'WHERE {constant.UserRoleTable}.role_id = %s ' \
+                       f'ORDER BY {constant.UserTable}.id ASC'
+            self.users = mysqlDB.execute(user_sql, [self.role_id], log_Key='角色用户')['result']
+        return self.users
 
     def ui_info(self):
         return {
@@ -86,8 +97,8 @@ class Role:
             'update_by': self.update_by,
             'parent': [child.info() for child in self.parent] if self.parent else None,
 
-            'users': self.users,
-            'permissions': self.permissions,
+            'users': self.get_role_users(),
+            'permissions': self.get_permission(),
         }
 
     @classmethod
@@ -112,7 +123,7 @@ class Role:
         获取角色的所有权限（包括继承的权限）
         :return:
         """
-        permissions = self.permissions
+        permissions = self.get_permission()
 
         if self.parent:
             args = [[(parent_role,)] for parent_role in self.parent]

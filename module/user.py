@@ -14,7 +14,7 @@ from utils import dict_to_obj, pools
 
 class User:
 
-    def __init__(self, uid=None, email=None):
+    def __init__(self, uid=None, email=None, fill_permission=True):
         self.uid = uid
         self.name = None
         self.email = email
@@ -34,9 +34,9 @@ class User:
         self.projects = []
 
         self.login = False
-        self._init()
+        self._init(fill_permission)
 
-    def _init(self):
+    def _init(self, fill_permission=True):
         cols = ['uid', 'name', 'email', 'salt', 'bcrypt_str', 'is_ban', 'remark',
                 'create_at', 'create_by', 'update_at', 'update_by']
         condition = {}
@@ -48,38 +48,42 @@ class User:
             condition = {'id': {'=': -1}}
 
         info_sql, info_args = sql_builder.gen_select_sql(constant.UserTable, cols, condition=condition, limit=1)
-        res = mysqlDB.execute(info_sql, info_args)['result']
+        res = mysqlDB.execute(info_sql, info_args, log_key='用户信息')['result']
         if not res:
             return
 
         dict_to_obj.set_obj_attr(self, res[0])
         self.login = True
 
+        if fill_permission:
+            self.load_permission()
+
+    def load_permission(self):
         role_sql = f'SELECT {constant.RoleTable}.role_id AS role_id, {constant.RoleTable}.name AS role_name ' \
                    f'FROM {constant.RoleTable}' \
                    f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.role_id = {constant.RoleTable}.role_id ' \
                    f'WHERE {constant.UserRoleTable}.uid = %s'
-        roles = mysqlDB.execute(role_sql, [self.uid])['result']
-        if roles:
-            args = [[(role_data['role_id'], )] for role_data in roles]
-            self.roles = pools.execute_event(lambda role_id: Role(role_id), args)
+        roles_res = mysqlDB.execute(role_sql, [self.uid], log_key='用户角色')['result']
+        if roles_res:
+            args = [[(role_data['role_id'],)] for role_data in roles_res]
+            roles = pools.execute_event(lambda role_id: Role(role_id, fill_permission=False), args)
+            self.roles = list(filter(lambda role: role.name, roles))
 
         depart_sql = f'SELECT {constant.DepartTable}.depart_id AS depart_id, {constant.DepartTable}.name AS depart_name ' \
                      f'FROM {constant.DepartTable}' \
                      f' LEFT JOIN {constant.UserDepartTable} ON {constant.UserDepartTable}.depart_id = {constant.DepartTable}.depart_id ' \
                      f'WHERE {constant.UserDepartTable}.uid = %s'
-        depart = mysqlDB.execute(depart_sql, [self.uid])['result']
-        if depart:  # TODO：待取消判定
-            self.depart = Depart(depart[0]['depart_id'])
+        depart_res = mysqlDB.execute(depart_sql, [self.uid], log_key='用户部门')['result']
+        self.depart = Depart(depart_res[0]['depart_id'], fill_permission=False)
 
         self.permissions = self.get_permissions()
 
-        self.projects = self.get_projects() if self.depart else {}
+        self.projects = self.get_projects()
 
     @classmethod
     def has_register(cls, email):
         sql = f'SELECT uid FROM {constant.UserTable} WHERE email = %s LIMIT 1'
-        res = mysqlDB.execute(sql, [email])['result']
+        res = mysqlDB.execute(sql, [email], log_key='注册校验')['result']
         return res
 
     # 用户自己可查看的信息
@@ -90,7 +94,7 @@ class User:
             'email': self.email,
 
             'roles': [role.ui_info() for role in self.roles],
-            'depart': self.depart.ui_info() if self.depart else {},     # TODO: 待取消判定
+            'depart': self.depart.ui_info(),
             'permissions': self.permissions,
         }
 
@@ -108,7 +112,7 @@ class User:
             'remark': self.remark,
 
             'roles': [role.ui_info() for role in self.roles],
-            'depart': self.depart.ui_info() if self.depart else {},     # TODO: 待取消判定
+            'depart': self.depart.ui_info(),
             'permissions': self.permissions,
             'projects': self.projects,
         }

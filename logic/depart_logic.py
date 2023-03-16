@@ -47,7 +47,7 @@ def remove_depart(query):
     for depart_id in depart_id_arr:
         del_depart_ids.add(depart_id)
 
-        depart = Depart(depart_id)
+        depart = Depart(depart_id, fill_permission=False)
         children = depart.children
         while children:
             child = children.pop(0)
