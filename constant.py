@@ -11,10 +11,12 @@ RoleTable = 'role'
 UserRoleTable = 'user_role'
 # 角色权限表
 RolePermissionTable = 'role_permission'
+# 测试表
+DemoTable = 'demo'
 
 # 超管
-SuperAdminRoleID = '9fbda9bac78bda02d332d7ab0cc106a1'
+SuperAdminRoleID = ''
 # 管理员
-AdminRoleID = 'a2fee1741f8baa0886cad3160d6a50ff'
+AdminRoleID = ''
 # 默认角色
-DefaultRoleID = '3363153a98cc9a23042514c5edcc2089'
+DefaultRoleID = ''

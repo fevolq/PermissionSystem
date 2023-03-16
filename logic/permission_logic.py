@@ -4,14 +4,39 @@
 # FileName:
 
 import json
+from typing import List
 
 from flask import request
 
 import constant
 from dao import sql_builder, mysqlDB
 from module.role import Role
+from module.user import User
 from status_code import StatusCode
 from utils import util
+
+
+def can_change_admin_role(role_id: str, current_user):
+    """
+    当前用户是否可更改当前角色
+    :param role_id:
+    :param current_user:
+    :return:
+    """
+    return current_user.is_super_admin() or role_id not in [constant.SuperAdminRoleID, constant.AdminRoleID]
+
+
+def can_change_admin_user(uids: List, current_user):
+    """
+    当前用户是否可更改指定用户
+    :param uids:
+    :param current_user:
+    :return:
+    """
+    for uid in uids:
+        if User.user_is_admin(uid) and not current_user.is_super_admin():
+            return False
+    return True
 
 
 def role_add_users(query):
@@ -19,8 +44,11 @@ def role_add_users(query):
     role_id = query['role_id']
     users_id = query['uids']
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
-    if role_id in [constant.SuperAdminRoleID, constant.AdminRoleID] and not current_user.is_super_admin():
-        # 更改管理员人员，需超管权限
+    if not can_change_admin_role(role_id, current_user):
+        # 添加管理员人员，需超管权限
+        return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+    if not can_change_admin_user(users_id, current_user):
+        # 更改管理员用户的角色，需要超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
 
     # TODO：冲突校验
@@ -43,8 +71,11 @@ def role_remove_users(query):
     users_id = data['uids']
 
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
-    if role_id in [constant.SuperAdminRoleID, constant.AdminRoleID] and not current_user.is_super_admin():
-        # 更改管理员人员，需超管权限
+    if not can_change_admin_role(role_id, current_user):
+        # 移除管理员，需超管权限
+        return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
+    if not can_change_admin_user(users_id, current_user):
+        # 更改管理员用户的角色，需要超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
 
     # TODO：冲突校验

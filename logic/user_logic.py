@@ -17,6 +17,7 @@ def register(query):
     name = query['name']
     email = query['email']
     password = query['password']
+    remark = query.get('remark', None)
     if User.has_register(email):
         return {'code': StatusCode.is_conflict, 'msg': 'Email address has registered'}
 
@@ -32,12 +33,12 @@ def register(query):
         'bcrypt_str':  bcrypt_str,
         'create_at': current_time,
         'update_at': current_time,
-        'remark': query.get('remark', None),
+        'remark': remark,
     }
     sql, args = sql_builder.gen_insert_sql(constant.UserTable, row)
     user_role_row = {
         'uid': uid,
-        'role_id': constant.DefaultRoleID,
+        'role_id': constant.DefaultRoleID,      # 新用户为默认角色
         'update_at': current_time,
         'update_by': '',
     }
@@ -45,7 +46,7 @@ def register(query):
     res = mysqlDB.execute_many([
         {'sql': sql, 'args': args},
         {'sql': role_sql, 'args': role_args},
-    ])
+    ], log_key='注册用户')
     return {'code': StatusCode.success}
 
 
