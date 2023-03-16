@@ -62,10 +62,11 @@ class User:
                    f'FROM {constant.RoleTable}' \
                    f' LEFT JOIN {constant.UserRoleTable} ON {constant.UserRoleTable}.role_id = {constant.RoleTable}.role_id ' \
                    f'WHERE {constant.UserRoleTable}.uid = %s'
-        roles = mysqlDB.execute(role_sql, [self.uid], log_key='用户角色')['result']
-        if roles:
-            args = [[(role_data['role_id'],)] for role_data in roles]
-            self.roles = pools.execute_event(lambda role_id: Role(role_id, fill_permission=False), args)
+        roles_res = mysqlDB.execute(role_sql, [self.uid], log_key='用户角色')['result']
+        if roles_res:
+            args = [[(role_data['role_id'],)] for role_data in roles_res]
+            roles = pools.execute_event(lambda role_id: Role(role_id, fill_permission=False), args)
+            self.roles = list(filter(lambda role: role.name, roles))
 
         if self.is_admin():     # 管理员不用再查询权限
             return
