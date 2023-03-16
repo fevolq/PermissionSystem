@@ -23,9 +23,11 @@ def register(query):
     name = query['name']
     email = query['email']
     password = query['password']
+    remark = query.get('remark', None)
     role_id = query.get('role_id', constant.DefaultRoleID)
     depart_id = query['depart_id']
-    assert depart_id in [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+    assert depart_id in [depart_data['depart_id'] for depart_data in Depart.get_all_data()]
+
     if User.has_register(email):
         return {'code': StatusCode.is_conflict, 'msg': 'Email address has registered'}
     if role_id in (constant.SuperAdminRoleID, constant.AdminRoleID) and not current_user.is_super_admin():
@@ -41,20 +43,24 @@ def register(query):
         'email': email,
         'salt': salt,
         'bcrypt_str': bcrypt_str,
-        'remark': query.get('remark', None),
+        'remark': remark,
         'create_at': current_time,
         'create_by': current_user.email,
         'update_at': current_time,
         'update_by': '',
     }
     sql, args = sql_builder.gen_insert_sql(constant.UserTable, row)
-    user_role_row = {
+    role_ids = [role_id]
+    if role_id != constant.DefaultRoleID:
+        # 用户永远有默认角色，避免删除某角色导致用户变成无角色状态
+        role_ids.insert(0, constant.DefaultRoleID)
+    user_role_rows = [{
         'uid': uid,
         'role_id': role_id,
         'update_at': current_time,
         'update_by': current_user.email,
-    }
-    role_sql, role_args = sql_builder.gen_insert_sql(constant.UserRoleTable, user_role_row)
+    } for role_id in role_ids]
+    role_sql, role_args = sql_builder.gen_insert_sqls(constant.UserRoleTable, user_role_rows)
     user_depart_row = {
         'uid': uid,
         'depart_id': depart_id,

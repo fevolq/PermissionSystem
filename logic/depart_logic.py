@@ -17,8 +17,8 @@ def add_depart(query):
 
     name = query['name']
     remark = query.get('remark')
-    parent_id = query.get('parent_id', Depart.root_depart_id)
-    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+    parent_id = query.get('parent_id', constant.RootDepartID)
+    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()]
     if all_depart_ids:
         assert parent_id in all_depart_ids
 
@@ -54,7 +54,11 @@ def remove_depart(query):
             del_depart_ids.add(child.depart_id)
             children.extend(child.children)
 
-    assert Depart.root_depart_id not in del_depart_ids
+    assert constant.RootDepartID not in del_depart_ids
+
+    record_sql, record_args = sql_builder.gen_select_sql(constant.UserDepartTable, ['uid'], condition={'depart_id': {'IN': del_depart_ids}})
+    record_res = mysqlDB.execute(record_sql, record_args)['result']
+    assert not record_res       # 删除的部门中存在用户，则不能删除，避免用户处于无部门状态
 
     sql, args = sql_builder.gen_delete_sql(constant.DepartTable, conditions={'depart_id': {'IN': del_depart_ids}})
     res = mysqlDB.execute(sql, args)
@@ -74,7 +78,7 @@ def update_depart(query):
     if not change_fields:
         return {'code': StatusCode.success}
     elif 'parent_id' in change_fields:
-        all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+        all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()]
         assert change_fields['parent_id'] in all_depart_ids
 
     change_fields['update_at'] = util.asia_local_time()
@@ -94,7 +98,7 @@ def info(query):
     if depart_name is not None:
         conditions['name'] = {'LIKE': depart_name}
     if depart_id is None:
-        conditions['parent_id'] = {'=': Depart.root_depart_id}
+        conditions['parent_id'] = {'=': ''}
     else:
         conditions['depart_id'] = {'=': depart_id}
 

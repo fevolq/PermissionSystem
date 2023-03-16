@@ -147,7 +147,7 @@ def user_depart(query):
     current_user = request.environ['metadata.user']
     depart_id = query['depart_id']
     data = query['data']
-    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()]
     assert depart_id in all_depart_ids
 
     if not can_change_admin_user([row['uid'] for row in data], current_user):
@@ -203,7 +203,7 @@ def role_permission(query):
         'update_at': util.asia_local_time(),
         'update_by': current_user.email,
     }
-    sql, args = sql_builder.gen_insert_sql(constant.RolePermissionTable, row, update_cols=['permission', 'update_at'])
+    sql, args = sql_builder.gen_insert_sql(constant.RolePermissionTable, row, update_cols=['permission', 'update_at', 'update_by'])
     res = mysqlDB.execute(sql, args)
 
     return {'code': StatusCode.success}
@@ -215,7 +215,7 @@ def depart_add_project(query):
     projects = query['projects']
     assert projects
 
-    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()] + [Depart.root_depart_id]
+    all_depart_ids = [depart_data['depart_id'] for depart_data in Depart.get_all_data()]
     assert depart_id in all_depart_ids
 
     rows = [{

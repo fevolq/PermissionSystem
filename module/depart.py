@@ -13,7 +13,6 @@ from utils import dict_to_obj, pools
 
 class Depart:
 
-    root_depart_id = '0'        # 最顶级的部门，即企业
     all_data = None             # 仅包含基础元素
     __lock = threading.RLock()
 
