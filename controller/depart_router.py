@@ -13,7 +13,7 @@ depart_route = Blueprint('depart', __name__)
 
 # 增加
 @depart_route.route('add', methods=['POST'])
-@user_util.is_admin
+@user_util.is_super_admin
 def add_depart():
     query = request.json
     res = depart_logic.add_depart(query)
@@ -22,7 +22,7 @@ def add_depart():
 
 # 删除
 @depart_route.route('remove', methods=['DELETE'])
-@user_util.is_admin
+@user_util.is_super_admin
 def remove_depart():
     query = request.json
     res = depart_logic.remove_depart(query)
@@ -31,7 +31,7 @@ def remove_depart():
 
 # 更改
 @depart_route.route('update', methods=['PUT'])
-@user_util.is_admin
+@user_util.is_super_admin
 def update_depart():
     query = request.json
     res = depart_logic.update_depart(query)
@@ -40,7 +40,7 @@ def update_depart():
 
 # 查询
 @depart_route.route('info', methods=['GET'])
-@user_util.is_admin
+@user_util.is_super_admin
 def info():
     query = request.args
     res = depart_logic.info(query)
