@@ -3,6 +3,10 @@
 # CreateTime: 2023/3/16 15:10
 # FileName:
 
+import sys
+
+sys.path.append('..')
+
 import constant
 from dao import mysqlDB
 
