@@ -5,6 +5,7 @@
 
 import hashlib
 import threading
+import atexit
 
 from dbutils.pooled_db import PooledDB
 import redis
@@ -38,6 +39,10 @@ class PoolDB:
         self.__key = hashlib.md5(f'{self._mode}/{self._db_name}/{self._db_conf}'.encode(encoding='UTF-8')).hexdigest()
         if self.__key not in PoolDB.__pools:
             self._prepare()
+
+    @property
+    def key(self):
+        return self.__key
 
     def _prepare(self):
         if self._mode.lower() == 'mysql':
@@ -111,6 +116,21 @@ class PoolDB:
                 return self.get_connection()
         return coon
 
+    @classmethod
+    def close_pool(cls, key=None):
+
+        def close(pool):
+            try:
+                pool.close()
+            except:
+                pass
+
+        if key:
+            close(cls.__pools.get(key))
+        else:
+            for key in cls.__pools:
+                close(cls.__pools.get(key))
+
 
 def get_coon(mode: str = 'mysql', **kwargs):
     """
@@ -124,3 +144,17 @@ def get_coon(mode: str = 'mysql', **kwargs):
 
     dbpool = PoolDB(mode, db_name, db_conf)
     return dbpool.get_connection()
+
+
+def close_pool(key=None):
+    """
+    关闭数据库连接池
+    :param key:
+    :return:
+    """
+    return PoolDB.close_pool(key=key)
+
+
+@atexit.register
+def close_all_pool():
+    return close_pool()
