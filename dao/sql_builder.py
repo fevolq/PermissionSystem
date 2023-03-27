@@ -46,7 +46,7 @@ def gen_wheres_part(table_name: str, conditions: dict, args: list = None):
                 match = True
             elif op == 'LIKE':
                 where_strs.append(f"{table_str}{field} like %s")
-                condition_op_value = [f'%{value}%' for value in condition_op_value]
+                condition_op_value = f'%{condition_op_value}%'
                 match = True
             elif op == 'IN':
                 condition_value_len = len(condition_op_value)
