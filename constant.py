@@ -20,3 +20,11 @@ SuperAdminRoleID = ''
 AdminRoleID = ''
 # 默认角色
 DefaultRoleID = ''
+
+# 无效用户ID
+InvalidUID = 0
+# 临时用户ID
+TempUID = None
+
+# token有效期（天）
+TokenExpire = 7
