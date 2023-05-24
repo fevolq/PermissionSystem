@@ -44,6 +44,7 @@ def role_add_users(query):
     role_id = query['role_id']
     users_id = query['uids']
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
+    assert role_id != constant.DefaultRoleID        # 默认角色不需单独添加用户
     if not can_change_admin_role(role_id, current_user):
         # 添加管理员人员，需超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
@@ -71,6 +72,7 @@ def role_remove_users(query):
     users_id = data['uids']
 
     assert role_id in [role_data['role_id'] for role_data in Role.get_all_data()]
+    assert role_id != constant.DefaultRoleID  # 默认角色不需单独添加用户
     if not can_change_admin_role(role_id, current_user):
         # 移除管理员，需超管权限
         return {'code': StatusCode.forbidden, 'msg': 'Access Denied'}
