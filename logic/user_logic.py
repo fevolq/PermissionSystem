@@ -69,6 +69,11 @@ def temp_account(hash_value):
     return {'code': StatusCode.success, 'token': token, 'info': user_info}
 
 
+def info():
+    current_user: User = request.environ['metadata.user']
+    return {'code': StatusCode.success, 'data': current_user.ui_info()}
+
+
 def update(query):
     current_user: User = request.environ['metadata.user']
     data = query['data']
@@ -104,7 +109,7 @@ def update(query):
     return {'code': StatusCode.success}
 
 
-def info(query):
+def user_list(query):
     uid_arr = query.getlist('uids')
     uname_arr = query.getlist('unames')
     email_arr = query.getlist('emails')

@@ -38,6 +38,12 @@ def temp():
     return jsonify(res)
 
 
+@user_route.route('info', methods=['GET'])
+def info():
+    res = user_logic.info()
+    return jsonify(res)
+
+
 # 更新用户信息
 @user_route.route('update', methods=['PUT'])
 @user_util.is_login
@@ -48,11 +54,11 @@ def update():
 
 
 # 查询用户
-@user_route.route('info', methods=['GET'])
+@user_route.route('list', methods=['GET'])
 @user_util.is_admin
-def info():
+def user_list():
     query = request.args
-    res = user_logic.info(query)
+    res = user_logic.user_list(query)
     return jsonify(res)
 
 
